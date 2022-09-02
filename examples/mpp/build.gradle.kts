@@ -86,6 +86,8 @@ kotlin {
                 implementation(project(":ballast-repository"))
                 implementation(project(":ballast-saved-state"))
                 implementation(project(":ballast-debugger"))
+                implementation(project(":ballast-navigation"))
+                implementation(project(":ballast-sync"))
 
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.logging)
@@ -112,9 +114,7 @@ kotlin {
                 implementation(libs.androidx.material)
                 implementation(libs.androidx.lifecycle.runtime)
                 implementation(libs.androidx.compose.activity)
-                implementation(libs.androidx.navigation)
-                implementation(libs.androidx.navigation.ui)
-                implementation(libs.androidx.navigation.compose)
+                implementation(libs.androidx.lifecycle.viewmodel.compose)
 
                 implementation(libs.ktor.client.okhttp)
             }
@@ -129,6 +129,7 @@ kotlin {
                 api(compose.desktop.components.splitPane)
 
                 implementation(libs.ktor.client.okhttp)
+                implementation(libs.kotlinx.coroutines.swing)
             }
         }
 
@@ -183,7 +184,7 @@ val fetchLatestBggApis by tasks.registering {
         }
     }
 }
-tasks.getByName("jsProcessResources").dependsOn(fetchLatestBggApis)
+//tasks.getByName("jsProcessResources").dependsOn(fetchLatestBggApis)
 
 fun executeAndGetXmlResponse(type: String) {
     val url = "https://boardgamegeek.com/xmlapi2/hot?type=$type"

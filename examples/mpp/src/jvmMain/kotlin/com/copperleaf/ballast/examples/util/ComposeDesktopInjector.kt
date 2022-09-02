@@ -6,10 +6,19 @@ import com.copperleaf.ballast.examples.bgg.BggViewModel
 import com.copperleaf.ballast.examples.counter.CounterViewModel
 import com.copperleaf.ballast.examples.kitchensink.KitchenSinkViewModel
 import com.copperleaf.ballast.examples.kitchensink.controller.KitchenSinkControllerViewModel
+import com.copperleaf.ballast.examples.mainlist.MainViewModel
+import com.copperleaf.ballast.examples.navigation.RouterViewModel
 import com.copperleaf.ballast.examples.scorekeeper.ScorekeeperViewModel
+import com.copperleaf.ballast.sync.SyncClientType
 import kotlinx.coroutines.CoroutineScope
 
 interface ComposeDesktopInjector {
+
+    fun routerViewModel(): RouterViewModel
+
+    fun mainViewModel(
+        coroutineScope: CoroutineScope
+    ): MainViewModel
 
     fun kitchenSinkControllerViewModel(
         coroutineScope: CoroutineScope,
@@ -22,6 +31,7 @@ interface ComposeDesktopInjector {
 
     fun counterViewModel(
         coroutineScope: CoroutineScope,
+        syncClientType: SyncClientType,
     ): CounterViewModel
 
     fun bggViewModel(

@@ -1,12 +1,12 @@
 package com.copperleaf.ballast.examples.util
 
+import com.copperleaf.ballast.BallastInterceptor
 import com.copperleaf.ballast.BallastLogger
 import com.copperleaf.ballast.BallastViewModelConfiguration
 import com.copperleaf.ballast.InputStrategy
 import com.copperleaf.ballast.build
 import com.copperleaf.ballast.core.LoggingInterceptor
 import com.copperleaf.ballast.debugger.BallastDebuggerClientConnection
-import com.copperleaf.ballast.debugger.BallastDebuggerInterceptor
 import com.copperleaf.ballast.examples.bgg.api.BggApi
 import com.copperleaf.ballast.examples.bgg.repository.BggRepositoryImpl
 import com.copperleaf.ballast.examples.bgg.ui.BggContract
@@ -19,13 +19,23 @@ import com.copperleaf.ballast.examples.kitchensink.KitchenSinkViewModel
 import com.copperleaf.ballast.examples.kitchensink.controller.KitchenSinkControllerContract
 import com.copperleaf.ballast.examples.kitchensink.controller.KitchenSinkControllerInputHandler
 import com.copperleaf.ballast.examples.kitchensink.controller.KitchenSinkControllerSavedStateAdapter
+import com.copperleaf.ballast.examples.mainlist.MainContract
+import com.copperleaf.ballast.examples.mainlist.MainInputHandler
+import com.copperleaf.ballast.examples.navigation.Routes
 import com.copperleaf.ballast.examples.scorekeeper.ScorekeeperContract
 import com.copperleaf.ballast.examples.scorekeeper.ScorekeeperInputHandler
 import com.copperleaf.ballast.examples.scorekeeper.ScorekeeperSavedStateAdapter
+import com.copperleaf.ballast.navigation.routing.RouterContract
+import com.copperleaf.ballast.navigation.routing.withRouter
 import com.copperleaf.ballast.plusAssign
 import com.copperleaf.ballast.repository.bus.EventBusImpl
 import com.copperleaf.ballast.savedstate.BallastSavedStateInterceptor
 import com.copperleaf.ballast.savedstate.SavedStateAdapter
+import com.copperleaf.ballast.sync.BallastSyncInterceptor
+import com.copperleaf.ballast.sync.DefaultSyncConnection
+import com.copperleaf.ballast.sync.InMemorySyncAdapter
+import com.copperleaf.ballast.sync.SyncClientType
+import com.copperleaf.ballast.sync.SyncConnection
 import com.copperleaf.ballast.withViewModel
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
@@ -64,8 +74,8 @@ abstract class CommonBallastInjector<out T : HttpClientEngineConfig>(
             it.connect(loggerFactory("Debugger"))
         }
     }
-    protected val eventBus = EventBusImpl()
-    protected val bggRepository by lazy {
+    private val eventBus = EventBusImpl()
+    private val bggRepository by lazy {
         BggRepositoryImpl(
             coroutineScope = applicationScope,
             eventBus = eventBus,
@@ -74,14 +84,46 @@ abstract class CommonBallastInjector<out T : HttpClientEngineConfig>(
         )
     }
 
+    private val counterSyncConnection: SyncConnection<
+        CounterContract.Inputs,
+        CounterContract.Events,
+        CounterContract.State> by lazy {
+        DefaultSyncConnection(
+            InMemorySyncAdapter()
+        )
+    }
+
     protected fun commonBuilder(): BallastViewModelConfiguration.Builder {
         return BallastViewModelConfiguration.Builder()
             .apply {
                 this += LoggingInterceptor()
-                this += BallastDebuggerInterceptor(debuggerConnection)
+//                this += BallastDebuggerInterceptor(debuggerConnection)
                 logger = loggerFactory
             }
     }
+
+    protected fun routerConfiguration(
+        vararg additionalInterceptors: BallastInterceptor<RouterContract.Inputs,
+            RouterContract.Events,
+            RouterContract.State>,
+    ): BallastViewModelConfiguration<
+        RouterContract.Inputs,
+        RouterContract.Events,
+        RouterContract.State> = commonBuilder()
+        .withRouter(routingTable = Routes)
+        .apply { this += additionalInterceptors.toList() }
+        .build()
+
+    protected fun mainConfiguration(): BallastViewModelConfiguration<
+        MainContract.Inputs,
+        MainContract.Events,
+        MainContract.State> = commonBuilder()
+        .withViewModel(
+            initialState = MainContract.State(),
+            inputHandler = MainInputHandler(),
+            name = "Main",
+        )
+        .build()
 
     protected fun kitchenSinkControllerConfiguration(): BallastViewModelConfiguration<
         KitchenSinkControllerContract.Inputs,
@@ -120,6 +162,7 @@ abstract class CommonBallastInjector<out T : HttpClientEngineConfig>(
         .build()
 
     protected fun counterConfiguration(
+        syncClientType: SyncClientType,
         adapter: SavedStateAdapter<
             CounterContract.Inputs,
             CounterContract.Events,
@@ -129,6 +172,10 @@ abstract class CommonBallastInjector<out T : HttpClientEngineConfig>(
         CounterContract.Events,
         CounterContract.State> = commonBuilder()
         .apply {
+            this += BallastSyncInterceptor(
+                connection = counterSyncConnection,
+                clientType = syncClientType,
+            )
             if (adapter != null) {
                 this += BallastSavedStateInterceptor(adapter)
             }

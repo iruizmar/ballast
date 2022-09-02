@@ -9,10 +9,14 @@ import com.copperleaf.ballast.examples.counter.CounterViewModel
 import com.copperleaf.ballast.examples.kitchensink.KitchenSinkEventHandler
 import com.copperleaf.ballast.examples.kitchensink.KitchenSinkViewModel
 import com.copperleaf.ballast.examples.kitchensink.controller.KitchenSinkControllerViewModel
+import com.copperleaf.ballast.examples.mainlist.MainViewModel
+import com.copperleaf.ballast.examples.navigation.RouterViewModel
 import com.copperleaf.ballast.examples.scorekeeper.ScorekeeperViewModel
+import com.copperleaf.ballast.sync.SyncClientType
 import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
 
 class AndroidInjectorImpl(
     applicationScope: CoroutineScope,
@@ -23,6 +27,16 @@ class AndroidInjectorImpl(
     loggerFactory = ::AndroidBallastLogger,
     debuggerHost = "10.0.2.2",
 ), AndroidInjector {
+
+    private val router = RouterViewModel(MainScope(), routerConfiguration())
+
+    override fun routerViewModel(): RouterViewModel {
+        return router
+    }
+
+    override fun mainViewModel(): MainViewModel {
+        return MainViewModel(mainConfiguration())
+    }
 
     override fun kitchenSinkControllerViewModel(): KitchenSinkControllerViewModel {
         return KitchenSinkControllerViewModel(
@@ -37,15 +51,19 @@ class AndroidInjectorImpl(
         return KitchenSinkViewModel(
             viewModelCoroutineScope = coroutineScope,
             config = kitchenSinkConfiguration(inputStrategy),
-            eventHandler = KitchenSinkEventHandler { /* ignore */ },
+            eventHandler = KitchenSinkEventHandler(router),
         )
     }
 
     override fun counterViewModel(
-        savedStateHandle: SavedStateHandle
+        savedStateHandle: SavedStateHandle,
+        syncClientType: SyncClientType,
     ): CounterViewModel {
         return CounterViewModel(
-            counterConfiguration(CounterSavedStateAdapter(savedStateHandle)),
+            counterConfiguration(
+                syncClientType,
+                CounterSavedStateAdapter(savedStateHandle)
+            ),
         )
     }
 

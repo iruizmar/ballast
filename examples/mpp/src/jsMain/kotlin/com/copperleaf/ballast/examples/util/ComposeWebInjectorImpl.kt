@@ -10,12 +10,18 @@ import com.copperleaf.ballast.examples.kitchensink.KitchenSinkEventHandler
 import com.copperleaf.ballast.examples.kitchensink.KitchenSinkViewModel
 import com.copperleaf.ballast.examples.kitchensink.controller.KitchenSinkControllerEventHandler
 import com.copperleaf.ballast.examples.kitchensink.controller.KitchenSinkControllerViewModel
+import com.copperleaf.ballast.examples.mainlist.MainEventHandler
+import com.copperleaf.ballast.examples.mainlist.MainViewModel
+import com.copperleaf.ballast.examples.navigation.RouterViewModel
 import com.copperleaf.ballast.examples.scorekeeper.ScorekeeperEventHandler
 import com.copperleaf.ballast.examples.scorekeeper.ScorekeeperViewModel
+import com.copperleaf.ballast.navigation.routing.BrowserHashNavigationInterceptor
+import com.copperleaf.ballast.sync.SyncClientType
 import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.engine.js.Js
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
 
 class ComposeWebInjectorImpl(
     private val applicationScope: CoroutineScope,
@@ -27,13 +33,30 @@ class ComposeWebInjectorImpl(
     debuggerHost = "127.0.0.1",
 ), ComposeWebInjector {
 
+    private val router = RouterViewModel(
+        MainScope(),
+        routerConfiguration(BrowserHashNavigationInterceptor())
+    )
+
+    override fun routerViewModel(): RouterViewModel {
+        return router
+    }
+
+    override fun mainViewModel(coroutineScope: CoroutineScope): MainViewModel {
+        return MainViewModel(
+            coroutineScope = coroutineScope,
+            config = mainConfiguration(),
+            eventHandler = MainEventHandler(routerViewModel())
+        )
+    }
+
     override fun kitchenSinkControllerViewModel(
         coroutineScope: CoroutineScope,
     ): KitchenSinkControllerViewModel {
         return KitchenSinkControllerViewModel(
             viewModelCoroutineScope = coroutineScope,
             config = kitchenSinkControllerConfiguration(),
-            eventHandler = KitchenSinkControllerEventHandler(),
+            eventHandler = KitchenSinkControllerEventHandler(routerViewModel()),
         )
     }
 
@@ -44,15 +67,18 @@ class ComposeWebInjectorImpl(
         return KitchenSinkViewModel(
             viewModelCoroutineScope = coroutineScope,
             config = kitchenSinkConfiguration(inputStrategy),
-            eventHandler = KitchenSinkEventHandler { /* ignore */ },
+            eventHandler = KitchenSinkEventHandler(routerViewModel()),
         )
     }
 
-    override fun counterViewModel(coroutineScope: CoroutineScope): CounterViewModel {
+    override fun counterViewModel(
+        coroutineScope: CoroutineScope,
+        syncClientType: SyncClientType,
+    ): CounterViewModel {
         return CounterViewModel(
             viewModelCoroutineScope = coroutineScope,
-            config = counterConfiguration(null),
-            eventHandler = CounterEventHandler(),
+            config = counterConfiguration(syncClientType, null),
+            eventHandler = CounterEventHandler(routerViewModel()),
         )
     }
 
@@ -60,7 +86,7 @@ class ComposeWebInjectorImpl(
         return BggViewModel(
             viewModelCoroutineScope = coroutineScope,
             config = bggConfiguration(),
-            eventHandler = BggEventHandler(),
+            eventHandler = BggEventHandler(routerViewModel()),
         )
     }
 
@@ -70,7 +96,7 @@ class ComposeWebInjectorImpl(
         return ScorekeeperViewModel(
             viewModelCoroutineScope = coroutineScope,
             config = scorekeeperConfiguration(),
-            eventHandler = ScorekeeperEventHandler { window.alert(it) },
+            eventHandler = ScorekeeperEventHandler(routerViewModel()) { window.alert(it) },
         )
     }
 }

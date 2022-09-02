@@ -9,6 +9,8 @@ import io.ktor.client.request.url
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.DEFAULT_PORT
+import io.ktor.http.URLProtocol
+import io.ktor.http.encodedPath
 import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import org.w3c.dom.Element

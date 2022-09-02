@@ -5,6 +5,7 @@ import com.copperleaf.ballast.build
 import com.copperleaf.ballast.examples.bgg.api.BggApi
 import com.copperleaf.ballast.examples.bgg.models.BggHotListItem
 import com.copperleaf.ballast.examples.bgg.models.HotListType
+import com.copperleaf.ballast.forViewModel
 import com.copperleaf.ballast.repository.BallastRepository
 import com.copperleaf.ballast.repository.bus.EventBus
 import com.copperleaf.ballast.repository.cache.Cached
